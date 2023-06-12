@@ -11,7 +11,7 @@ onLoop(({ delta }) => player.tick(delta));
 
 <template>
   <TresCanvas window-size>
-    <TresPerspectiveCamera :position="player.cameraPosition" />
+    <TresPerspectiveCamera :fov="60" :position="player.cameraPosition" />
     <PlayerControls />
     <TerrainView />
     <TresDirectionalLight :intensity="1.5" :position="[3, 4, 3]" />

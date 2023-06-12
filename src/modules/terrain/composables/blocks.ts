@@ -36,5 +36,30 @@ function generateInitialTerrain() {
 export const useBlockData = defineStore("blocks", () => {
   const data = ref<Block[]>(generateInitialTerrain());
 
-  return { data };
+  // TODO: find closest block below, not any block below
+  function getBlockBelow(position: [number, number, number]) {
+    return data.value.find(
+      (block) =>
+        block.position[0] === Math.round(position[0]) &&
+        block.position[1] < Math.round(position[1]) &&
+        block.position[2] === Math.round(position[2])
+    );
+  }
+
+  function getHighestBlockBelow(positions: [number, number, number][]) {
+    let highestBlock = getBlockBelow(positions[0]);
+    for (const position of positions.slice(1)) {
+      const maybeHighestBlock = getBlockBelow(position);
+      if (
+        !highestBlock ||
+        (maybeHighestBlock &&
+          maybeHighestBlock.position[1] > highestBlock.position[1])
+      ) {
+        highestBlock = maybeHighestBlock;
+      }
+    }
+    return highestBlock;
+  }
+
+  return { data, getBlockBelow, getHighestBlockBelow };
 });

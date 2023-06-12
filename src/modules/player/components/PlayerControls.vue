@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { watchEffect } from "vue";
+import { watch, watchEffect } from "vue";
 import { useTres } from "@tresjs/core";
 import { computedWithControl, useMagicKeys } from "@vueuse/core";
 import * as THREE from "three";
@@ -34,9 +34,13 @@ watchEffect(() => {
     velocity.x += 1;
   }
 
-  velocity.applyQuaternion(cameraAngle.value).setY(0).setLength(10);
+  velocity.applyQuaternion(cameraAngle.value).setY(0);
 
-  player.setXZVelocity(velocity.x, velocity.z);
+  player.setWalkDirection(velocity);
+});
+
+watch(() => keys.Space, (space) => {
+  player.setIsJumping(space);
 });
 </script>
 

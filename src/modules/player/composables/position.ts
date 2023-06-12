@@ -6,38 +6,66 @@ import { useBlockData } from "@/modules/terrain/composables/blocks";
 export const usePlayerPosition = defineStore("playerPosition", () => {
   const blockStore = useBlockData();
 
-  let highestY = 0;
-  for (const block of blockStore.data) {
-    if (
-      block.position[0] === 0 &&
-      block.position[2] === 0 &&
-      block.position[1] > highestY
-    ) {
-      highestY = block.position[1];
-    }
-  }
-
-  const initialPosition = [0, highestY + 0.5, 0];
+  const spawnAbove = blockStore.getBlockBelow([0, 10000, 0]);
+  if (!spawnAbove) throw new Error("couldn't find spawning block");
+  const initialPosition = spawnAbove.position.slice() as [
+    number,
+    number,
+    number
+  ];
+  initialPosition[1] += 1;
 
   const position = ref(initialPosition);
   const velocity = ref(new THREE.Vector3());
 
-  function setXZVelocity(x: number, z: number) {
-    velocity.value.x = x;
-    velocity.value.z = z;
+  // TODO: add some kind of tweening here
+  const walkDirection = ref(new THREE.Vector3());
+  const walkVelocity = ref(new THREE.Vector3());
+  function setWalkDirection(direction: THREE.Vector3) {
+    walkDirection.value = direction;
+  }
+
+  const isJumping = ref(false);
+  function setIsJumping(newIsJumping: boolean) {
+    isJumping.value = newIsJumping;
+  }
+
+  function tick(delta: number) {
+    walkVelocity.value = walkDirection.value.clone().multiplyScalar(4.3);
+
+    // TODO: use getHighestBlockBelow to check full hitbox
+    const blockBelow = blockStore.getBlockBelow(position.value);
+    const distToBelow = blockBelow
+      ? position.value[1] - blockBelow.position[1]
+      : Infinity;
+
+    if (distToBelow > 1) {
+      // I got this off reddit - I'm not sure it's right
+      // https://www.reddit.com/r/GameTheorists/comments/dk3f2f/i_calculated_minecrafts_true_gravity/
+      velocity.value.y -= 31.36 * delta;
+    } else if (isJumping.value) {
+      // Designed to appromixate a jump height of 1.25 blocks
+      velocity.value.y = 8.2;
+    }
+
+    velocity.value.x = walkVelocity.value.x;
+    velocity.value.z = walkVelocity.value.z;
+
+    position.value[0] += velocity.value.x * delta;
+    position.value[1] += velocity.value.y * delta;
+    position.value[2] += velocity.value.z * delta;
+
+    if (blockBelow && position.value[1] < blockBelow.position[1] + 1) {
+      position.value[1] = blockBelow.position[1] + 1;
+      velocity.value.y = 0;
+    }
   }
 
   const cameraPosition = computed(() => [
     position.value[0],
-    position.value[1] + 1.8,
+    position.value[1] + 1.8 + 0.5,
     position.value[2],
   ]);
 
-  function tick(delta: number) {
-    position.value[0] += velocity.value.x * delta;
-    position.value[1] += velocity.value.y * delta;
-    position.value[2] += velocity.value.z * delta;
-  }
-
-  return { position, setXZVelocity, cameraPosition, tick };
+  return { position, setWalkDirection, setIsJumping, cameraPosition, tick };
 });
