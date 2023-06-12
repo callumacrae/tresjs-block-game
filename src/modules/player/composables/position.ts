@@ -1,5 +1,6 @@
 import { computed, ref } from "vue";
 import { defineStore } from "pinia";
+import * as THREE from "three";
 import { useBlockData } from "@/modules/terrain/composables/blocks";
 
 export const usePlayerPosition = defineStore("playerPosition", () => {
@@ -19,6 +20,12 @@ export const usePlayerPosition = defineStore("playerPosition", () => {
   const initialPosition = [0, highestY + 0.5, 0];
 
   const position = ref(initialPosition);
+  const velocity = ref(new THREE.Vector3());
+
+  function setXZVelocity(x: number, z: number) {
+    velocity.value.x = x;
+    velocity.value.z = z;
+  }
 
   const cameraPosition = computed(() => [
     position.value[0],
@@ -26,5 +33,11 @@ export const usePlayerPosition = defineStore("playerPosition", () => {
     position.value[2],
   ]);
 
-  return { position, cameraPosition };
+  function tick(delta: number) {
+    position.value[0] += velocity.value.x * delta;
+    position.value[1] += velocity.value.y * delta;
+    position.value[2] += velocity.value.z * delta;
+  }
+
+  return { position, setXZVelocity, cameraPosition, tick };
 });

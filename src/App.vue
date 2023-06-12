@@ -1,10 +1,12 @@
 <script setup lang="ts">
-import { TresCanvas } from "@tresjs/core";
+import { TresCanvas, useRenderLoop } from "@tresjs/core";
 import TerrainView from "@/modules/terrain/components/TerrainView.vue";
 import { usePlayerPosition } from "@/modules/player/composables/position";
 import PlayerControls from "@/modules/player/components/PlayerControls.vue";
 
 const player = usePlayerPosition();
+const { onLoop } = useRenderLoop();
+onLoop(({ delta }) => player.tick(delta));
 </script>
 
 <template>

@@ -1,19 +1,24 @@
 <script lang="ts" setup>
-import { toRefs } from "vue";
-import { useTres, useRenderLoop } from "@tresjs/core";
-import { useMagicKeys } from "@vueuse/core";
+import { watchEffect } from "vue";
+import { useTres } from "@tresjs/core";
+import { computedWithControl, useMagicKeys } from "@vueuse/core";
 import * as THREE from "three";
 
 import { usePlayerPosition } from "../composables/position";
 import PointerLockControls from "./PointerLockControls.vue";
 
-const { position } = toRefs(usePlayerPosition());
+const player = usePlayerPosition();
 
 const { state } = useTres();
 
+const cameraAngle = computedWithControl(
+  () => state.camera,
+  () => state.camera.quaternion.clone()
+);
+const updateCameraAngle = cameraAngle.trigger;
+
 const keys = useMagicKeys({ reactive: true });
-const { onLoop } = useRenderLoop();
-onLoop(({ delta }) => {
+watchEffect(() => {
   const velocity = new THREE.Vector3();
 
   if (keys.W) {
@@ -29,17 +34,12 @@ onLoop(({ delta }) => {
     velocity.x += 1;
   }
 
-  velocity
-    .applyQuaternion(state.camera.quaternion)
-    .setY(0)
-    .setLength(10 * delta);
+  velocity.applyQuaternion(cameraAngle.value).setY(0).setLength(10);
 
-  position.value[0] += velocity.x;
-  position.value[1] += velocity.y;
-  position.value[2] += velocity.z;
+  player.setXZVelocity(velocity.x, velocity.z);
 });
 </script>
 
 <template>
-  <PointerLockControls />
+  <PointerLockControls @change="updateCameraAngle" />
 </template>
