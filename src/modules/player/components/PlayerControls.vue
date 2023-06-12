@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import { watch, watchEffect } from "vue";
 import { useTres } from "@tresjs/core";
-import { computedWithControl, useMagicKeys } from "@vueuse/core";
+import { useMagicKeys } from "@vueuse/core";
 import * as THREE from "three";
 
 import { usePlayerPosition } from "../composables/position";
@@ -11,15 +11,15 @@ const player = usePlayerPosition();
 
 const { state } = useTres();
 
-const cameraAngle = computedWithControl(
-  () => state.camera,
-  () => state.camera?.quaternion.clone()
-);
-const updateCameraAngle = cameraAngle.trigger;
+function onControlsChange() {
+  if (state.camera) {
+    player.cameraAngle = state.camera.quaternion.clone();
+  }
+}
 
 const keys = useMagicKeys({ reactive: true });
 watchEffect(() => {
-  if (!cameraAngle.value) return;
+  if (!player.cameraAngle) return;
 
   const velocity = new THREE.Vector3();
 
@@ -36,16 +36,19 @@ watchEffect(() => {
     velocity.x += 1;
   }
 
-  velocity.applyQuaternion(cameraAngle.value).setY(0);
+  velocity.applyQuaternion(player.cameraAngle).setY(0);
 
   player.setWalkDirection(velocity);
 });
 
-watch(() => keys.Space, (space) => {
-  player.setIsJumping(space);
-});
+watch(
+  () => keys.Space,
+  (space) => {
+    player.setIsJumping(space);
+  }
+);
 </script>
 
 <template>
-  <PointerLockControls @change="updateCameraAngle" />
+  <PointerLockControls @change="onControlsChange" />
 </template>

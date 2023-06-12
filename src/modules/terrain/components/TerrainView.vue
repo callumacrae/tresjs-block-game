@@ -23,6 +23,7 @@ const mesh = computed(() => {
 });
 </script>
 
+<!-- TODO: figure out a better way to update this than to pass length as key!! -->
 <template>
-  <primitive :object="mesh" />
+  <primitive :object="mesh" :key="data.length" />
 </template>

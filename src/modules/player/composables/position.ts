@@ -59,6 +59,8 @@ export const usePlayerPosition = defineStore("playerPosition", () => {
       position.value[1] = blockBelow.position[1] + 1;
       velocity.value.y = 0;
     }
+
+    blockStore.onPlayerPositionUpdate(position.value, cameraAngle.value);
   }
 
   const cameraPosition = computed(() => [
@@ -67,5 +69,8 @@ export const usePlayerPosition = defineStore("playerPosition", () => {
     position.value[2],
   ]);
 
-  return { position, setWalkDirection, setIsJumping, cameraPosition, tick };
+  // Writing to this won't change the camera angle!
+  const cameraAngle = ref(new THREE.Quaternion());
+
+  return { position, setWalkDirection, setIsJumping, cameraPosition, cameraAngle, tick };
 });

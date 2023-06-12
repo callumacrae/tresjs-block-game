@@ -1,7 +1,9 @@
 import alea from "alea";
 import { defineStore } from "pinia";
 import { createNoise2D } from "simplex-noise";
+import * as THREE from 'three';
 import { ref } from "vue";
+import useIdleQueue from "@/composables/idle-queue";
 
 interface Block {
   position: [number, number, number];
@@ -11,21 +13,22 @@ interface Block {
 const prng = alea("seed");
 const noise2D = createNoise2D(prng);
 
-// TODO: this is a temporary function
-function generateInitialTerrain() {
+function generateTerrainAbout(origin: [number, number]) {
   const data: Block[] = [];
-  for (let x = -30; x < 30; x++) {
-    for (let z = -30; z < 30; z++) {
-      const slowNoise = noise2D(x / 100, z / 100) + 1 / 2;
-      const fastNoise = noise2D(x / 10, z / 10) + 1 / 2;
+  for (let x = -16; x < 16; x++) {
+    for (let z = -16; z < 16; z++) {
+      const offsetX = origin[0] + x;
+      const offsetZ = origin[1] + z;
+      const slowNoise = noise2D(offsetX / 100, offsetZ / 100) + 1 / 2;
+      const fastNoise = noise2D(offsetX / 10, offsetZ / 10) + 1 / 2;
       const y = Math.floor(slowNoise * 10 + fastNoise * 2 + 2);
 
       data.push({
-        position: [x, y - 1, z],
+        position: [offsetX, y - 1, offsetZ],
         type: "stone",
       });
       data.push({
-        position: [x, y, z],
+        position: [offsetX, y, offsetZ],
         type: "grass",
       });
     }
@@ -34,7 +37,7 @@ function generateInitialTerrain() {
 }
 
 export const useBlockData = defineStore("blocks", () => {
-  const data = ref<Block[]>(generateInitialTerrain());
+  const data = ref<Block[]>(generateTerrainAbout([0, 0]));
 
   // TODO: find closest block below, not any block below
   function getBlockBelow(position: [number, number, number]) {
@@ -61,5 +64,23 @@ export const useBlockData = defineStore("blocks", () => {
     return highestBlock;
   }
 
-  return { data, getBlockBelow, getHighestBlockBelow };
+  const idleQueue = useIdleQueue<[number, number]>((coords) => {
+    data.value = data.value.concat(generateTerrainAbout(coords));
+  });
+  for (let x = -2; x <= 2; x++) {
+    for (let z = -2; z <= 2; z++) {
+      if (x === 0 && z === 0) continue;
+      idleQueue.push([x * 32, z * 32]);
+    }
+  }
+
+  // Called by the play position store, used to load more terrain as needed
+  function onPlayerPositionUpdate(
+    position: [number, number, number],
+    cameraAngle: THREE.Quaternion
+  ) {
+    // TODO: load more terrain
+  }
+
+  return { data, getBlockBelow, getHighestBlockBelow, onPlayerPositionUpdate };
 });
