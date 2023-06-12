@@ -13,12 +13,14 @@ const { state } = useTres();
 
 const cameraAngle = computedWithControl(
   () => state.camera,
-  () => state.camera.quaternion.clone()
+  () => state.camera?.quaternion.clone()
 );
 const updateCameraAngle = cameraAngle.trigger;
 
 const keys = useMagicKeys({ reactive: true });
 watchEffect(() => {
+  if (!cameraAngle.value) return;
+
   const velocity = new THREE.Vector3();
 
   if (keys.W) {
