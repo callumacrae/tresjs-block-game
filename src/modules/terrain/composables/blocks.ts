@@ -1,43 +1,27 @@
-import alea from "alea";
 import { defineStore } from "pinia";
-import { createNoise2D } from "simplex-noise";
-import * as THREE from 'three';
+import * as THREE from "three";
 import { ref } from "vue";
-import useIdleQueue from "@/composables/idle-queue";
 
-interface Block {
+export interface Block {
   position: [number, number, number];
   type: "grass" | "stone";
 }
 
-const prng = alea("seed");
-const noise2D = createNoise2D(prng);
+
+const terrainWorker = new Worker(new URL("../worker.ts", import.meta.url), {
+  type: "module",
+});
 
 function generateTerrainAbout(origin: [number, number]) {
-  const data: Block[] = [];
-  for (let x = -16; x < 16; x++) {
-    for (let z = -16; z < 16; z++) {
-      const offsetX = origin[0] + x;
-      const offsetZ = origin[1] + z;
-      const slowNoise = noise2D(offsetX / 100, offsetZ / 100) + 1 / 2;
-      const fastNoise = noise2D(offsetX / 10, offsetZ / 10) + 1 / 2;
-      const y = Math.floor(slowNoise * 10 + fastNoise * 2 + 2);
-
-      data.push({
-        position: [offsetX, y - 1, offsetZ],
-        type: "stone",
-      });
-      data.push({
-        position: [offsetX, y, offsetZ],
-        type: "grass",
-      });
-    }
-  }
-  return data;
+  terrainWorker.postMessage(Array.from(origin));
 }
 
 export const useBlockData = defineStore("blocks", () => {
-  const data = ref<Block[]>(generateTerrainAbout([0, 0]));
+  const data = ref<Block[]>([]);
+  terrainWorker.addEventListener("message", (e) => {
+    data.value.push(...e.data);
+  });
+  generateTerrainAbout([0, 0]);
 
   // TODO: find closest block below, not any block below
   function getBlockBelow(position: [number, number, number]) {
@@ -64,13 +48,10 @@ export const useBlockData = defineStore("blocks", () => {
     return highestBlock;
   }
 
-  const idleQueue = useIdleQueue<[number, number]>((coords) => {
-    data.value = data.value.concat(generateTerrainAbout(coords));
-  });
   for (let x = -2; x <= 2; x++) {
     for (let z = -2; z <= 2; z++) {
       if (x === 0 && z === 0) continue;
-      idleQueue.push([x * 32, z * 32]);
+      generateTerrainAbout([x * 32, z * 32]);
     }
   }
 

@@ -6,9 +6,9 @@ import { useBlockData } from "@/modules/terrain/composables/blocks";
 export const usePlayerPosition = defineStore("playerPosition", () => {
   const blockStore = useBlockData();
 
-  const spawnAbove = blockStore.getBlockBelow([0, 10000, 0]);
-  if (!spawnAbove) throw new Error("couldn't find spawning block");
-  const initialPosition = spawnAbove.position.slice() as [
+  // const spawnAbove = blockStore.getBlockBelow([0, 10000, 0]);
+  // if (!spawnAbove) throw new Error("couldn't find spawning block");
+  const initialPosition = [0, 10, 0] as [
     number,
     number,
     number
